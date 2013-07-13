@@ -145,7 +145,7 @@ static const struct pios_spi_cfg pios_spi_rfm22b_cfg =
 		.SPI_CPHA = SPI_CPHA_1Edge,
 		.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16,		// slowest SCLK
 	},
-	.use_crc = FALSE,
+	.use_crc = false,
 
 	.dma =
 	{
@@ -352,7 +352,7 @@ void PIOS_ADC_handler() {
 #include "pios_tim_priv.h"
 
 static const TIM_TimeBaseInitTypeDef tim_1_2_3_4_time_base = {
-	.TIM_Prescaler = (PIOS_MASTER_CLOCK / 1000000) - 1,
+	.TIM_Prescaler = (PIOS_SYSCLK / 1000000) - 1,
 	.TIM_ClockDivision = TIM_CKD_DIV1,
 	.TIM_CounterMode = TIM_CounterMode_Up,
 	.TIM_Period = ((1000000 / PIOS_SERVO_UPDATE_HZ) - 1),
@@ -633,23 +633,65 @@ const struct pios_usb_cdc_cfg pios_usb_cdc_cfg = {
 
 #if defined(PIOS_INCLUDE_FLASH)
 #include "pios_flashfs_logfs_priv.h"
+
+static const struct flashfs_logfs_cfg flashfs_internal_settings_cfg = {
+	.fs_magic      = 0x9ae1ee11,
+	.arena_size    = 0x00002000,       /* 32 * slot size = 8K bytes = 4 sectors */
+	.slot_size     = 0x00000100,       /* 256 bytes */
+};
+
 #include "pios_flash_internal_priv.h"
 
 static const struct pios_flash_internal_cfg flash_internal_cfg = {
 };
 
-static const struct flashfs_logfs_cfg flashfs_internal_settings_cfg = {
-	.fs_magic      = 0x9ae1ee11,
-	.total_fs_size = EE_BANK_SIZE,     /* 16K bytes (8x2KB sectors) */
-	.arena_size    = 0x00002000,       /* 32 * slot size = 8K bytes = 4 sectors */
-	.slot_size     = 0x00000100,       /* 256 bytes */
+#include "pios_flash_priv.h"
 
-	.start_offset  = EE_BANK_BASE, /* start after the bootloader */
-	.sector_size   = 0x00000800,   /* 2K bytes */
-	.page_size     = 0x00000800,   /* 2K bytes */
+static const struct pios_flash_sector_range stm32f1_sectors[] = {
+	{
+		.base_sector = 0,
+		.last_sector = 127,
+		.sector_size = FLASH_SECTOR_1KB,
+	},
 };
 
-#include "pios_flash.h"
+uintptr_t pios_internal_flash_id;
+static const struct pios_flash_chip pios_flash_chip_internal = {
+	.driver        = &pios_internal_flash_driver,
+	.chip_id       = &pios_internal_flash_id,
+	.page_size     = 16, /* 128-bit rows */
+	.sector_blocks = stm32f1_sectors,
+	.num_blocks    = NELEMENTS(stm32f1_sectors),
+};
+
+static const struct pios_flash_partition pios_flash_partition_table[] = {
+	{
+		.label        = FLASH_PARTITION_LABEL_BL,
+		.chip_desc    = &pios_flash_chip_internal,
+		.first_sector = 0,
+		.last_sector  = 11,
+		.chip_offset  = 0,
+		.size         = (11 - 0 + 1) * FLASH_SECTOR_1KB,
+	},
+
+	{
+		.label        = FLASH_PARTITION_LABEL_FW,
+		.chip_desc    = &pios_flash_chip_internal,
+		.first_sector = 12,
+		.last_sector  = 111,
+		.chip_offset  = (12 * FLASH_SECTOR_1KB),
+		.size         = (111 - 12 + 1) * FLASH_SECTOR_1KB,
+	},
+
+	{
+		.label        = FLASH_PARTITION_LABEL_SETTINGS,
+		.chip_desc    = &pios_flash_chip_internal,
+		.first_sector = 112,
+		.last_sector  = 127,
+		.chip_offset  = (112 * FLASH_SECTOR_1KB),
+		.size         = (127 - 112 + 1) * FLASH_SECTOR_1KB,
+	},
+};
 
 #endif	/* PIOS_INCLUDE_FLASH */
 

@@ -405,36 +405,20 @@ void PIOS_SPI_flash_accel_irq_handler(void)
 
 #if defined(PIOS_INCLUDE_FLASH)
 #include "pios_flashfs_logfs_priv.h"
-#include "pios_flash_jedec_priv.h"
 
-static const struct flashfs_logfs_cfg flashfs_w25x_cfg = {
+static const struct flashfs_logfs_cfg flashfs_settings_cfg = {
 	.fs_magic      = 0x99abcdef,
-	.total_fs_size = 0x00080000, /* 512K bytes (128 sectors = entire chip) */
 	.arena_size    = 0x00010000, /* 256 * slot size */
 	.slot_size     = 0x00000100, /* 256 bytes */
-
-	.start_offset  = 0,	     /* start at the beginning of the chip */
-	.sector_size   = 0x00001000, /* 4K bytes */
-	.page_size     = 0x00000100, /* 256 bytes */
 };
+
+#include "pios_flash_jedec_priv.h"
 
 static const struct pios_flash_jedec_cfg flash_w25x_cfg = {
 	.expect_manufacturer = JEDEC_MANUFACTURER_WINBOND,
 	.expect_memorytype   = 0x30,
 	.expect_capacity     = 0x13,
 	.sector_erase        = 0x20,
-	.chip_erase          = 0x60
-};
-
-static const struct flashfs_logfs_cfg flashfs_m25p_cfg = {
-	.fs_magic      = 0x99abceef,
-	.total_fs_size = 0x00200000, /* 2M bytes (32 sectors = entire chip) */
-	.arena_size    = 0x00010000, /* 256 * slot size */
-	.slot_size     = 0x00000100, /* 256 bytes */
-
-	.start_offset  = 0,	     /* start at the beginning of the chip */
-	.sector_size   = 0x00010000, /* 64K bytes */
-	.page_size     = 0x00000100, /* 256 bytes */
 };
 
 static const struct pios_flash_jedec_cfg flash_m25p_cfg = {
@@ -442,10 +426,144 @@ static const struct pios_flash_jedec_cfg flash_m25p_cfg = {
 	.expect_memorytype   = 0x20,
 	.expect_capacity     = 0x15,
 	.sector_erase        = 0xD8,
-	.chip_erase          = 0xC7,
 };
 
-#include "pios_flash.h"
+#include "pios_flash_internal_priv.h"
+
+static const struct pios_flash_internal_cfg flash_internal_cfg = {
+};
+
+#include "pios_flash_priv.h"
+
+static const struct pios_flash_sector_range stm32f1_sectors[] = {
+	{
+		.base_sector = 0,
+		.last_sector = 127,
+		.sector_size = FLASH_SECTOR_1KB,
+	},
+};
+
+uintptr_t pios_internal_flash_id;
+static const struct pios_flash_chip pios_flash_chip_internal = {
+	.driver        = &pios_internal_flash_driver,
+	.chip_id       = &pios_internal_flash_id,
+	.page_size     = 16, /* 128-bit rows */
+	.sector_blocks = stm32f1_sectors,
+	.num_blocks    = NELEMENTS(stm32f1_sectors),
+};
+
+uintptr_t pios_external_flash_id;
+/* 
+ * Must not be const on CC/CC3D since it needs to be replaced at run-time depending
+ * on which board we're booting on.
+ */
+static const struct pios_flash_sector_range m25p16_sectors[] = {
+	{
+		.base_sector = 0,
+		.last_sector = 31,
+		.sector_size = FLASH_SECTOR_64KB,
+	},
+};
+
+static const struct pios_flash_chip pios_flash_chip_m25p16 = {
+	.driver        = &pios_jedec_flash_driver,
+	.chip_id       = &pios_external_flash_id,
+	.page_size     = 256,
+	.sector_blocks = m25p16_sectors,
+	.num_blocks    = NELEMENTS(m25p16_sectors),
+};
+
+static const struct pios_flash_sector_range w25x40_sectors[] = {
+	{
+		.base_sector = 0,
+		.last_sector = 127,
+		.sector_size = FLASH_SECTOR_4KB,
+	},
+};
+
+static const struct pios_flash_chip pios_flash_chip_w25x40 = {
+	.driver        = &pios_jedec_flash_driver,
+	.chip_id       = &pios_external_flash_id,
+	.page_size     = 256,
+	.sector_blocks = w25x40_sectors,
+	.num_blocks    = NELEMENTS(w25x40_sectors),
+};
+
+static const struct pios_flash_partition pios_flash_partition_table_w25x40[] = {
+	{
+		.label        = FLASH_PARTITION_LABEL_BL,
+		.chip_desc    = &pios_flash_chip_internal,
+		.first_sector = 0,
+		.last_sector  = 11,
+		.chip_offset   = 0,
+		.size          = (11 - 0 + 1) * FLASH_SECTOR_1KB,
+	},
+
+	{
+		.label        = FLASH_PARTITION_LABEL_FW,
+		.chip_desc    = &pios_flash_chip_internal,
+		.first_sector = 12,
+		.last_sector  = 127,
+		.chip_offset  = (12 * FLASH_SECTOR_1KB),
+		.size         = (127 - 12 + 1) * FLASH_SECTOR_1KB,
+	},
+
+	{
+		.label        = FLASH_PARTITION_LABEL_SETTINGS,
+		.chip_desc    = &pios_flash_chip_w25x40,
+		.first_sector = 0,
+		.last_sector  = 63,
+		.chip_offset  = 0,
+		.size         = (63 - 0 + 1) * FLASH_SECTOR_4KB,
+	},
+
+	{
+		.label        = FLASH_PARTITION_LABEL_WAYPOINTS,
+		.chip_desc    = &pios_flash_chip_w25x40,
+		.first_sector = 64,
+		.last_sector  = 127,
+		.chip_offset  = (64 * FLASH_SECTOR_4KB),
+		.size         = (127 - 64 + 1) * FLASH_SECTOR_4KB,
+	},
+};
+
+static const struct pios_flash_partition pios_flash_partition_table_m25p16[] = {
+	{
+		.label        = FLASH_PARTITION_LABEL_BL,
+		.chip_desc    = &pios_flash_chip_internal,
+		.first_sector = 0,
+		.last_sector  = 11,
+		.chip_offset  = 0,
+		.size         = (11 - 0 + 1) * FLASH_SECTOR_1KB,
+	},
+
+	{
+		.label        = FLASH_PARTITION_LABEL_FW,
+		.chip_desc    = &pios_flash_chip_internal,
+		.first_sector = 12,
+		.last_sector  = 127,
+		.chip_offset  = (12 * FLASH_SECTOR_1KB),
+		.size         = (127 - 12 + 1) * FLASH_SECTOR_1KB,
+	},
+
+	{
+		.label        = FLASH_PARTITION_LABEL_SETTINGS,
+		.chip_desc    = &pios_flash_chip_m25p16,
+		.first_sector = 0,
+		.last_sector  = 15,
+		.chip_offset  = 0,
+		.size         = (15 - 0 + 1) * FLASH_SECTOR_64KB,
+	},
+
+	{
+		.label        = FLASH_PARTITION_LABEL_WAYPOINTS,
+		.chip_desc    = &pios_flash_chip_m25p16,
+		.first_sector = 16,
+		.last_sector  = 31,
+		.chip_offset  = (16 * FLASH_SECTOR_64KB),
+		.size         = (31 - 16 + 1) * FLASH_SECTOR_64KB,
+	},
+};
 
 #endif	/* PIOS_INCLUDE_FLASH */
 
@@ -498,7 +616,7 @@ void PIOS_ADC_handler() {
 #include "pios_tim_priv.h"
 
 static const TIM_TimeBaseInitTypeDef tim_1_2_3_4_time_base = {
-	.TIM_Prescaler = (PIOS_MASTER_CLOCK / 1000000) - 1,
+	.TIM_Prescaler = (PIOS_SYSCLK / 1000000) - 1,
 	.TIM_ClockDivision = TIM_CKD_DIV1,
 	.TIM_CounterMode = TIM_CounterMode_Up,
 	.TIM_Period = ((1000000 / PIOS_SERVO_UPDATE_HZ) - 1),

@@ -66,8 +66,8 @@ TIM4  |  RC In 1  |  Servo 3  |  Servo 2  |  Servo 1
 //------------------------
 // BOOTLOADER_SETTINGS
 //------------------------
-#define BOARD_READABLE	TRUE
-#define BOARD_WRITABLE	TRUE
+#define BOARD_READABLE	true
+#define BOARD_WRITABLE	true
 #define MAX_DEL_RETRYS	3
 
 
@@ -140,8 +140,8 @@ TIM4  |  RC In 1  |  Servo 3  |  Servo 2  |  Servo 1
 //-------------------------
 // System Settings
 //-------------------------
-#define PIOS_MASTER_CLOCK			72000000
-#define PIOS_PERIPHERAL_CLOCK			(PIOS_MASTER_CLOCK / 2)
+#define PIOS_SYSCLK			72000000
+#define PIOS_PERIPHERAL_CLOCK			(PIOS_SYSCLK / 2)
 
 //-------------------------
 // Interrupt Priorities
@@ -184,7 +184,7 @@ extern uintptr_t pios_com_telem_uart_flexi_id;
 extern uintptr_t pios_com_telemetry_id;
 extern uintptr_t pios_com_rfm22b_id;
 extern uintptr_t pios_com_radio_id;
-extern uint32_t pios_ppm_rcvr_id;
+extern uintptr_t pios_ppm_rcvr_id;
 #define PIOS_COM_TELEM_USB         (pios_com_telem_usb_id)
 #define PIOS_COM_TELEM_VCP         (pios_com_telem_vcp_id)
 #define PIOS_COM_TELEM_UART_FLEXI  (pios_com_telem_uart_flexi_id)

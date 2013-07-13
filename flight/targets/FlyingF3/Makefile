@@ -42,7 +42,6 @@ MODULES += Attitude/revolution
 MODULES += Actuator
 MODULES += ManualControl
 MODULES += Stabilization
-#MODULES += Airspeed/revolution
 MODULES += FirmwareIAP
 MODULES += Telemetry
 
@@ -60,6 +59,7 @@ OPTMODULES += VibrationAnalysis
 OPTMODULES += UAVOMavlinkBridge
 OPTMODULES += Battery
 OPTMODULES += ComUsbBridge
+OPTMODULES += Airspeed/revolution
 
 # Paths
 OPSYSTEM = ./System
@@ -124,6 +124,7 @@ SRC += $(MATHLIB)/coordinate_conversions.c
 SRC += $(MATHLIB)/sin_lookup.c
 SRC += $(MATHLIB)/misc_math.c
 SRC += $(MATHLIB)/pid.c
+SRC += $(MATHLIB)/atmospheric_math.c
 
 ## PIOS Hardware (STM32F30x)
 include $(PIOS)/STM32F30x/library.mk
@@ -131,6 +132,9 @@ include $(PIOS)/STM32F30x/library.mk
 ## PIOS Hardware (Common)
 SRC += $(PIOSCOMMON)/pios_l3gd20.c
 SRC += $(PIOSCOMMON)/pios_lsm303.c
+SRC += $(PIOSCOMMON)/pios_etasv3.c
+SRC += $(PIOSCOMMON)/pios_mpxv5004.c
+SRC += $(PIOSCOMMON)/pios_mpxv7002.c
 SRC += $(PIOSCOMMON)/pios_crc.c
 SRC += $(PIOSCOMMON)/pios_com.c
 SRC += $(PIOSCOMMON)/pios_rcvr.c
@@ -143,6 +147,7 @@ SRC += $(PIOSCOMMON)/pios_usb_desc_hid_cdc.c
 SRC += $(PIOSCOMMON)/pios_usb_util.c
 SRC += $(PIOSCOMMON)/pios_dma.c
 SRC += $(PIOSCOMMON)/pios_adc.c
+SRC += $(PIOSCOMMON)/pios_flash.c
 
 include ./UAVObjects.inc
 SRC += $(UAVOBJSRC)
@@ -235,9 +240,6 @@ ifeq ($(ENABLE_DEBUG_CONSOLE), YES)
 CDEFS += -DPIOS_INCLUDE_DEBUG_CONSOLE
 endif
 
-CDEFS += -DEE_BANK_BASE=$(EE_BANK_BASE)
-CDEFS += -DEE_BANK_SIZE=$(EE_BANK_SIZE)
-
 # Declare all non-optional modules as built-in to force inclusion, strip off any appended varieties of module
 get_mod_name = $(shell echo $(1) | sed "s/\/[^\/]*$///")
 BUILTIN_DEFS := ${foreach MOD, ${MODULES}, -DMODULE_$(call get_mod_name, $(MOD))_BUILTIN }
@@ -276,6 +278,7 @@ CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I.
 CFLAGS += -mapcs-frame
 CFLAGS += -fomit-frame-pointer
 CFLAGS += -ffunction-sections -fdata-sections
+CFLAGS += -Wdouble-promotion
 
 CFLAGS += -Wall
 CFLAGS += -Werror
@@ -308,7 +311,6 @@ LDFLAGS += -Wl,--fatal-warnings
 
 #Linker scripts
 LDFLAGS += $(addprefix -T,$(LINKER_SCRIPTS_APP))
-
 
 # Define programs and commands.
 REMOVE  = rm -f

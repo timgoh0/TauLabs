@@ -41,14 +41,16 @@
 #include <uavobjectsinit.h>
 #include "hwdiscoveryf4.h"
 #include "manualcontrolsettings.h"
-#include "gcsreceiver.h"
 #include "modulesettings.h"
 
 /* One slot per selectable receiver group.
  *  eg. PWM, PPM, GCS, DSMMAINPORT, DSMFLEXIPORT, SBUS
  * NOTE: No slot in this map for NONE.
  */
-uint32_t pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE];
+uintptr_t pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE];
+
+#define PIOS_COM_TELEM_RF_RX_BUF_LEN 512
+#define PIOS_COM_TELEM_RF_TX_BUF_LEN 512
 
 #define PIOS_COM_TELEM_USB_RX_BUF_LEN 65
 #define PIOS_COM_TELEM_USB_TX_BUF_LEN 65
@@ -74,7 +76,7 @@ uintptr_t pios_uavo_settings_fs_id;
 static void PIOS_Board_configure_com (const struct pios_usart_cfg *usart_port_cfg, size_t rx_buf_len, size_t tx_buf_len,
 		const struct pios_com_driver *com_driver, uintptr_t *pios_com_id)
 {
-	uint32_t pios_usart_id;
+	uintptr_t pios_usart_id;
 	if (PIOS_USART_Init(&pios_usart_id, usart_port_cfg)) {
 		PIOS_Assert(0);
 	}
@@ -103,6 +105,29 @@ static void PIOS_Board_configure_com (const struct pios_usart_cfg *usart_port_cf
 }
 #endif	/* PIOS_INCLUDE_USART && PIOS_INCLUDE_COM */
 
+/**
+ * Indicate a target-specific error code when a component fails to initialize
+ * 1 pulse - flash chip
+ */
+static void panic(int32_t code) {
+	while(1){
+		for (int32_t i = 0; i < code; i++) {
+			PIOS_WDG_Clear();
+			PIOS_LED_Toggle(PIOS_LED_ALARM);
+			PIOS_DELAY_WaitmS(200);
+			PIOS_WDG_Clear();
+			PIOS_LED_Toggle(PIOS_LED_ALARM);
+			PIOS_DELAY_WaitmS(200);
+		}
+		PIOS_DELAY_WaitmS(200);
+		PIOS_WDG_Clear();
+		PIOS_DELAY_WaitmS(200);
+		PIOS_WDG_Clear();
+		PIOS_DELAY_WaitmS(100);
+		PIOS_WDG_Clear();
+	}
+}
+
 #include <pios_board_info.h>
 /**
  * PIOS_Board_Init()
@@ -119,12 +144,18 @@ void PIOS_Board_Init(void) {
 #endif	/* PIOS_INCLUDE_LED */
 
 #if defined(PIOS_INCLUDE_FLASH)
-	/* Connect flash to the appropriate interface and configure it */
-	uintptr_t flash_id;
-	PIOS_Flash_Internal_Init(&flash_id, &flash_internal_cfg);
-	PIOS_FLASHFS_Logfs_Init(&pios_uavo_settings_fs_id, &flashfs_internal_cfg, &pios_internal_flash_driver, flash_id);
-#endif
-	
+	/* Inititialize all flash drivers */
+	if (PIOS_Flash_Internal_Init(&pios_internal_flash_id, &flash_internal_cfg) != 0)
+		panic(1);
+
+	/* Register the partition table */
+	PIOS_FLASH_register_partition_table(pios_flash_partition_table, NELEMENTS(pios_flash_partition_table));
+
+	/* Mount all filesystems */
+	if (PIOS_FLASHFS_Logfs_Init(&pios_uavo_settings_fs_id, &flashfs_settings_cfg, FLASH_PARTITION_LABEL_SETTINGS) != 0)
+		panic(1);
+#endif	/* PIOS_INCLUDE_FLASH */
+
 	/* Initialize UAVObject libraries */
 	EventDispatcherInitialize();
 	UAVObjInitialize();
@@ -184,7 +215,7 @@ void PIOS_Board_Init(void) {
 	usb_hid_present = true;
 #endif
 
-	uint32_t pios_usb_id;
+	uintptr_t pios_usb_id;
 	PIOS_USB_Init(&pios_usb_id, &pios_usb_main_cfg);
 
 #if defined(PIOS_INCLUDE_USB_CDC)
@@ -198,7 +229,7 @@ void PIOS_Board_Init(void) {
 		hw_usb_vcpport = HWDISCOVERYF4_USB_VCPPORT_DISABLED;
 	}
 
-	uint32_t pios_usb_cdc_id;
+	uintptr_t pios_usb_cdc_id;
 	if (PIOS_USB_CDC_Init(&pios_usb_cdc_id, &pios_usb_cdc_cfg, pios_usb_id)) {
 		PIOS_Assert(0);
 	}
@@ -264,7 +295,7 @@ void PIOS_Board_Init(void) {
 		hw_usb_hidport = HWDISCOVERYF4_USB_HIDPORT_DISABLED;
 	}
 
-	uint32_t pios_usb_hid_id;
+	uintptr_t pios_usb_hid_id;
 	if (PIOS_USB_HID_Init(&pios_usb_hid_id, &pios_usb_hid_cfg, pios_usb_id)) {
 		PIOS_Assert(0);
 	}
@@ -306,35 +337,22 @@ void PIOS_Board_Init(void) {
 	switch (hw_mainport) {
 	case HWDISCOVERYF4_MAINPORT_DISABLED:
 		break;
+	case HWDISCOVERYF4_MAINPORT_TELEMETRY:
+#if defined(PIOS_INCLUDE_TELEMETRY_RF) && defined(PIOS_INCLUDE_USART) && defined(PIOS_INCLUDE_COM)
+		PIOS_Board_configure_com(&pios_usart3_cfg, PIOS_COM_TELEM_RF_RX_BUF_LEN, PIOS_COM_TELEM_RF_TX_BUF_LEN, &pios_usart_com_driver, &pios_com_telem_rf_id);
+#endif /* PIOS_INCLUDE_TELEMETRY_RF */
 	case HWDISCOVERYF4_MAINPORT_DEBUGCONSOLE:
-#if defined(PIOS_INCLUDE_COM)
-#if defined(PIOS_INCLUDE_USART)
-#if defined(PIOS_INCLUDE_DEBUG_CONSOLE)
-		{
-			uint32_t pios_usart_generic_id;
-			if (PIOS_USART_Init(&pios_usart_generic_id, &pios_usart3_cfg)) {
-				PIOS_Assert(0);
-			}
-
-			uint8_t * tx_buffer = (uint8_t *) pvPortMalloc(PIOS_COM_DEBUGCONSOLE_TX_BUF_LEN);
-			PIOS_Assert(tx_buffer);
-			if (PIOS_COM_Init(&pios_com_debug_id, &pios_usart_com_driver, pios_usart_generic_id,
-				NULL, 0,
-				tx_buffer, PIOS_COM_DEBUGCONSOLE_TX_BUF_LEN)) {
-				PIOS_Assert(0);
-			}
-		}
+#if defined(PIOS_INCLUDE_DEBUG_CONSOLE) && defined(PIOS_INCLUDE_USART) && defined(PIOS_INCLUDE_COM)
+		PIOS_Board_configure_com(&pios_usart3_cfg, 0, PIOS_COM_DEBUGCONSOLE_TX_BUF_LEN, &pios_usart_com_driver, &pios_com_debug_id);
 #endif	/* PIOS_INCLUDE_DEBUG_CONSOLE */
-#endif	/* PIOS_INCLUDE_USART */
-#endif	/* PIOS_INCLUDE_COM */
 		break;
 	}
 
 #if defined(PIOS_INCLUDE_GCSRCVR)
 	GCSReceiverInitialize();
-	uint32_t pios_gcsrcvr_id;
+	uintptr_t pios_gcsrcvr_id;
 	PIOS_GCSRCVR_Init(&pios_gcsrcvr_id);
-	uint32_t pios_gcsrcvr_rcvr_id;
+	uintptr_t pios_gcsrcvr_rcvr_id;
 	if (PIOS_RCVR_Init(&pios_gcsrcvr_rcvr_id, &pios_gcsrcvr_rcvr_driver, pios_gcsrcvr_id)) {
 		PIOS_Assert(0);
 	}

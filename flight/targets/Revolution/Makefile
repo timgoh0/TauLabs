@@ -67,7 +67,6 @@ MODULES += ManualControl
 MODULES += Stabilization
 MODULES += Actuator
 MODULES += FirmwareIAP
-MODULES += Airspeed/revolution
 MODULES += Telemetry
 
 OPTMODULES += GPS
@@ -81,6 +80,7 @@ OPTMODULES += Autotune
 OPTMODULES += TxPID
 OPTMODULES += Battery
 OPTMODULES += VibrationAnalysis
+OPTMODULES += Airspeed/revolution
 
 PYMODULES = 
 #FlightPlan
@@ -167,6 +167,7 @@ SRC += $(MATHLIB)/coordinate_conversions.c
 SRC += $(MATHLIB)/sin_lookup.c
 SRC += $(MATHLIB)/misc_math.c
 SRC += $(MATHLIB)/pid.c
+SRC += $(MATHLIB)/atmospheric_math.c
 
 ## PIOS Hardware (STM32F4xx)
 include $(PIOS)/STM32F4xx/library.mk
@@ -185,6 +186,7 @@ SRC += $(PIOSCOMMON)/pios_crc.c
 SRC += $(PIOSCOMMON)/pios_com.c
 SRC += $(PIOSCOMMON)/pios_rcvr.c
 SRC += $(PIOSCOMMON)/pios_sensors.c
+SRC += $(PIOSCOMMON)/pios_flash.c
 SRC += $(PIOSCOMMON)/pios_flash_jedec.c
 SRC += $(PIOSCOMMON)/pios_flashfs_logfs.c
 SRC += $(PIOSCOMMON)/printf-stdarg.c
@@ -367,6 +369,7 @@ CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I.
 CFLAGS += -mapcs-frame
 CFLAGS += -fomit-frame-pointer
 CFLAGS += -ffunction-sections -fdata-sections
+CFLAGS += -Wdouble-promotion
 
 CFLAGS += -Wall
 CFLAGS += -Werror

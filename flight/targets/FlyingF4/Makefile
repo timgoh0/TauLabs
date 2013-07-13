@@ -40,7 +40,6 @@ MODULES += Actuator
 MODULES += ManualControl
 MODULES += Stabilization
 MODULES += FirmwareIAP
-#MODULES += Airspeed/revolution
 MODULES += Telemetry
 
 OPTMODULES += GPS
@@ -54,8 +53,9 @@ OPTMODULES += Autotune
 OPTMODULES += TxPID
 OPTMODULES += VibrationAnalysis
 OPTMODULES += UAVOMavlinkBridge
-#OPTMODULES += Battery
+OPTMODULES += Battery
 OPTMODULES += ComUsbBridge
+OPTMODULES += Airspeed/revolution
 
 
 # Paths
@@ -122,6 +122,7 @@ SRC += $(MATHLIB)/coordinate_conversions.c
 SRC += $(MATHLIB)/sin_lookup.c
 SRC += $(MATHLIB)/misc_math.c
 SRC += $(MATHLIB)/pid.c
+SRC += $(MATHLIB)/atmospheric_math.c
 
 ## PIOS Hardware (STM32F4xx)
 include $(PIOS)/STM32F4xx/library.mk
@@ -131,17 +132,22 @@ SRC += $(PIOSCOMMON)/pios_mpu6050.c
 SRC += $(PIOSCOMMON)/pios_gcsrcvr.c
 SRC += $(PIOSCOMMON)/pios_hmc5883.c
 SRC += $(PIOSCOMMON)/pios_ms5611.c
+SRC += $(PIOSCOMMON)/pios_etasv3.c
+SRC += $(PIOSCOMMON)/pios_mpxv5004.c
+SRC += $(PIOSCOMMON)/pios_mpxv7002.c
 SRC += $(PIOSCOMMON)/pios_crc.c
 SRC += $(PIOSCOMMON)/pios_com.c
 SRC += $(PIOSCOMMON)/pios_rcvr.c
 SRC += $(PIOSCOMMON)/pios_sbus.c
 SRC += $(PIOSCOMMON)/pios_sensors.c
+SRC += $(PIOSCOMMON)/pios_flash.c
 SRC += $(PIOSCOMMON)/pios_flash_jedec.c
 SRC += $(PIOSCOMMON)/pios_flashfs_logfs.c
 SRC += $(PIOSCOMMON)/printf-stdarg.c
 SRC += $(PIOSCOMMON)/pios_usb_desc_hid_cdc.c
 SRC += $(PIOSCOMMON)/pios_usb_desc_hid_only.c
 SRC += $(PIOSCOMMON)/pios_usb_util.c
+SRC += $(PIOSCOMMON)/pios_adc.c
 
 include ./UAVObjects.inc
 SRC += $(UAVOBJSRC)
@@ -279,6 +285,7 @@ CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I.
 CFLAGS += -mapcs-frame
 CFLAGS += -fomit-frame-pointer
 CFLAGS += -ffunction-sections -fdata-sections
+CFLAGS += -Wdouble-promotion
 
 CFLAGS += -Wall
 CFLAGS += -Werror

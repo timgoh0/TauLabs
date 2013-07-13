@@ -61,6 +61,9 @@
 /* Select the sensors to include */
 #define PIOS_INCLUDE_L3GD20
 #define PIOS_INCLUDE_LSM303
+//#define PIOS_INCLUDE_ETASV3
+#define PIOS_INCLUDE_MPXV5004
+#define PIOS_INCLUDE_MPXV7002
 #define FLASH_FREERTOS
 /* Com systems to include */
 #define PIOS_INCLUDE_COM
@@ -81,7 +84,6 @@
 #define PIOS_INCLUDE_PPM
 #define PIOS_INCLUDE_PWM
 #define PIOS_INCLUDE_GCSRCVR
-#define PIOS_INCLUDE_SETTINGS
 #define PIOS_INCLUDE_FLASH
 #define PIOS_INCLUDE_FLASH_INTERNAL
 #define PIOS_INCLUDE_LOGFS_SETTINGS

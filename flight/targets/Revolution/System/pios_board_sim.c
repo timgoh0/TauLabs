@@ -90,35 +90,7 @@ const struct pios_tcp_cfg pios_tcp_aux_cfg = {
 /**
  * Simulation of the flash filesystem
  */
-#include "../../../tests/logfs/pios_flash_ut_priv.h"
-const struct pios_flash_ut_cfg flash_config = {
-	.size_of_flash  = 0x00300000,
-	.size_of_sector = 0x00010000,
-};
-
-#include "pios_flashfs_logfs_priv.h"
-
-const struct flashfs_logfs_cfg flashfs_config_partition_a = {
-	.fs_magic      = 0x89abceef,
-	.total_fs_size = 0x00200000, /* 2M bytes (32 sectors) */
-	.arena_size    = 0x00010000, /* 256 * slot size */
-	.slot_size     = 0x00000100, /* 256 bytes */
-
-	.start_offset  = 0,	     /* start at the beginning of the chip */
-	.sector_size   = 0x00010000, /* 64K bytes */
-	.page_size     = 0x00000100, /* 256 bytes */
-};
-
-const struct flashfs_logfs_cfg flashfs_config_partition_b = {
-	.fs_magic      = 0x89abceef,
-	.total_fs_size = 0x00100000, /* 1M bytes (16 sectors) */
-	.arena_size    = 0x00010000, /* 64 * slot size */
-	.slot_size     = 0x00000400, /* 256 bytes */
-
-	.start_offset  = 0x00200000, /* start after partition a */
-	.sector_size   = 0x00010000, /* 64K bytes */
-	.page_size     = 0x00000100, /* 256 bytes */
-};
+#include "../../../tests/logfs/unittest_init.c"
 
 uintptr_t pios_uavo_settings_fs_id;
 uintptr_t pios_waypoints_settings_fs_id;
@@ -130,12 +102,13 @@ extern const struct pios_com_driver pios_serial_com_driver;
 extern const struct pios_com_driver pios_udp_com_driver;
 extern const struct pios_com_driver pios_tcp_com_driver;
 
-uint32_t pios_com_telem_rf_id;
-uint32_t pios_com_telem_usb_id;
-uint32_t pios_com_gps_id;
-uint32_t pios_com_aux_id;
-uint32_t pios_com_spectrum_id;
-uint32_t pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE];
+uintptr_t pios_com_debug_id;
+uintptr_t pios_com_telem_rf_id;
+uintptr_t pios_com_telem_usb_id;
+uintptr_t pios_com_gps_id;
+uintptr_t pios_com_aux_id;
+uintptr_t pios_com_spectrum_id;
+uintptr_t pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE];
 
 /**
  * PIOS_Board_Init()
@@ -146,6 +119,19 @@ void PIOS_Board_Init(void) {
 
 	/* Delay system */
 	PIOS_DELAY_Init();
+
+	int32_t retval = PIOS_Flash_Posix_Init(&pios_posix_flash_id, &flash_config);
+	if (retval != 0)
+		fprintf(stderr, "Unable to initialize flash posix simulator: %d\n", retval);
+
+	/* Register the partition table */
+	PIOS_FLASH_register_partition_table(pios_flash_partition_table, NELEMENTS(pios_flash_partition_table));
+
+	if (PIOS_FLASHFS_Logfs_Init(&pios_uavo_settings_fs_id, &flashfs_config_settings, FLASH_PARTITION_LABEL_SETTINGS) != 0)
+		fprintf(stderr, "Unable to open the settings partition\n");
+
+	if (PIOS_FLASHFS_Logfs_Init(&pios_waypoints_settings_fs_id, &flashfs_config_waypoints, FLASH_PARTITION_LABEL_WAYPOINTS) != 0)
+		fprintf(stderr, "Unable to open the waypoints partition\n");
 
 	/* Initialize UAVObject libraries */
 	EventDispatcherInitialize();
@@ -165,19 +151,10 @@ void PIOS_Board_Init(void) {
 	/* Initialize the task monitor library */
 	TaskMonitorInitialize();
 
-	uintptr_t flash_id;
-	int32_t retval = PIOS_Flash_UT_Init(&flash_id, &flash_config);
-  	if (retval != 0)
-		fprintf(stderr, "Unable to initialize flash ut simulator: %d\n", retval);
-
-  	if(PIOS_FLASHFS_Logfs_Init(&pios_waypoints_settings_fs_id, &flashfs_config_partition_b, &pios_ut_flash_driver, flash_id) != 0)
-		fprintf(stderr, "Unable to open the waypoints partition\n");
-
-
 #if defined(PIOS_INCLUDE_COM)
 #if defined(PIOS_INCLUDE_TELEMETRY_RF) && 1
 	{
-		uint32_t pios_tcp_telem_rf_id;
+		uintptr_t pios_tcp_telem_rf_id;
 		if (PIOS_TCP_Init(&pios_tcp_telem_rf_id, &pios_tcp_telem_cfg)) {
 			PIOS_Assert(0);
 		}
@@ -196,7 +173,7 @@ void PIOS_Board_Init(void) {
 
 #if defined(PIOS_INCLUDE_TELEMETRY_RF) && 0
 	{
-		uint32_t pios_udp_telem_rf_id;
+		uintptr_t pios_udp_telem_rf_id;
 		if (PIOS_UDP_Init(&pios_udp_telem_rf_id, &pios_udp_telem_cfg)) {
 			PIOS_Assert(0);
 		}
@@ -216,7 +193,7 @@ void PIOS_Board_Init(void) {
 
 #if defined(PIOS_INCLUDE_GPS)
 	{
-		uint32_t pios_tcp_gps_id;
+		uintptr_t pios_tcp_gps_id;
 		if (PIOS_TCP_Init(&pios_tcp_gps_id, &pios_tcp_gps_cfg)) {
 			PIOS_Assert(0);
 		}
@@ -233,9 +210,9 @@ void PIOS_Board_Init(void) {
 
 #if defined(PIOS_INCLUDE_GCSRCVR)
 	GCSReceiverInitialize();
-	uint32_t pios_gcsrcvr_id;
+	uintptr_t pios_gcsrcvr_id;
 	PIOS_GCSRCVR_Init(&pios_gcsrcvr_id);
-	uint32_t pios_gcsrcvr_rcvr_id;
+	uintptr_t pios_gcsrcvr_rcvr_id;
 	if (PIOS_RCVR_Init(&pios_gcsrcvr_rcvr_id, &pios_gcsrcvr_rcvr_driver, pios_gcsrcvr_id)) {
 		PIOS_Assert(0);
 	}

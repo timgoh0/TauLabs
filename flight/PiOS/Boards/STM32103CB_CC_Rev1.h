@@ -65,8 +65,8 @@ TIM4  |  RC In 1  |  Servo 3  |  Servo 2  |  Servo 1
 //------------------------
 // BOOTLOADER_SETTINGS
 //------------------------
-#define BOARD_READABLE	TRUE
-#define BOARD_WRITABLE	TRUE
+#define BOARD_READABLE	true
+#define BOARD_WRITABLE	true
 #define MAX_DEL_RETRYS	3
 
 
@@ -89,8 +89,8 @@ TIM4  |  RC In 1  |  Servo 3  |  Servo 2  |  Servo 1
 //-------------------------
 // System Settings
 //-------------------------
-#define PIOS_MASTER_CLOCK			72000000
-#define PIOS_PERIPHERAL_CLOCK			(PIOS_MASTER_CLOCK / 2)
+#define PIOS_SYSCLK			72000000
+#define PIOS_PERIPHERAL_CLOCK			(PIOS_SYSCLK / 2)
 
 //-------------------------
 // Interrupt Priorities
@@ -220,7 +220,7 @@ extern uintptr_t pios_com_mavlink_id;
 // Currently analog acquistion hard coded at 480 Hz
 // PCKL2 = HCLK / 16
 // ADCCLK = PCLK2 / 2
-#define PIOS_ADC_RATE		(72.0e6 / 1.0 / 8.0 / 252.0 / (PIOS_ADC_NUM_CHANNELS >> PIOS_ADC_USE_ADC2))
+#define PIOS_ADC_RATE		(72.0e6f / 1.0f / 8.0f / 252.0f / (PIOS_ADC_NUM_CHANNELS >> PIOS_ADC_USE_ADC2))
 #define PIOS_ADC_MAX_OVERSAMPLING               36
 #define PIOS_INTERNAL_ADC_UPDATE_RATE  25.0f
 //------------------------

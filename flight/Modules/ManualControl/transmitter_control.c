@@ -53,11 +53,11 @@
 #include "pios_usb_rctx.h"
 #endif	/* PIOS_INCLUDE_USB_RCTX */
 
-#define THROTTLE_FAILSAFE -0.1f
 #define ARMED_TIME_MS      1000
 #define ARMED_THRESHOLD    0.50f
 //safe band to allow a bit of calibration error or trim offset (in microseconds)
-#define CONNECTION_OFFSET 250
+#define CONNECTION_OFFSET_THROTTLE 100
+#define CONNECTION_OFFSET          250
 
 // Private types
 enum arm_state {
@@ -87,7 +87,7 @@ static uint8_t                    connected_count = 0;
 static struct rcvr_activity_fsm   activity_fsm;
 static portTickType               lastActivityTime;
 static portTickType               lastSysTime;
-static double                     flight_mode_value;
+static float                      flight_mode_value;
 static enum control_events        pending_control_event;
 static bool                       settings_updated;
 
@@ -101,7 +101,7 @@ static void process_transmitter_events(ManualControlCommandData * cmd, ManualCon
 static void set_manual_control_error(SystemAlarmsManualControlOptions errorCode);
 static float scaleChannel(int16_t value, int16_t max, int16_t min, int16_t neutral);
 static uint32_t timeDifferenceMs(portTickType start_time, portTickType end_time);
-static bool validInputRange(int16_t min, int16_t max, uint16_t value);
+static bool validInputRange(int16_t min, int16_t max, uint16_t value, uint16_t offset);
 static void applyDeadband(float *value, float deadband);
 static void resetRcvrActivity(struct rcvr_activity_fsm * fsm);
 static bool updateRcvrActivity(struct rcvr_activity_fsm * fsm);
@@ -199,7 +199,7 @@ int32_t transmitter_control_update()
 	for (uint8_t n = 0; 
 	     n < MANUALCONTROLSETTINGS_CHANNELGROUPS_NUMELEM && n < MANUALCONTROLCOMMAND_CHANNEL_NUMELEM;
 	     ++n) {
-		extern uint32_t pios_rcvr_group_map[];
+		extern uintptr_t pios_rcvr_group_map[];
 
 		if (settings.ChannelGroups[n] >= MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE) {
 			cmd.Channel[n] = PIOS_RCVR_INVALID;
@@ -210,7 +210,7 @@ int32_t transmitter_control_update()
 
 		// If a channel has timed out this is not valid data and we shouldn't update anything
 		// until we decide to go to failsafe
-		if(cmd.Channel[n] == PIOS_RCVR_TIMEOUT)
+		if(cmd.Channel[n] == (uint16_t) PIOS_RCVR_TIMEOUT)
 			valid_input_detected = false;
 		else
 			scaledChannel[n] = scaleChannel(cmd.Channel[n], settings.ChannelMax[n],	settings.ChannelMin[n], settings.ChannelNeutral[n]);
@@ -233,11 +233,12 @@ int32_t transmitter_control_update()
 		cmd.Channel[MANUALCONTROLSETTINGS_CHANNELGROUPS_THROTTLE] == (uint16_t) PIOS_RCVR_NODRIVER ||
 		// Check the FlightModeNumber is valid
 		settings.FlightModeNumber < 1 || settings.FlightModeNumber > MANUALCONTROLSETTINGS_FLIGHTMODEPOSITION_NUMELEM ||
-		// Similar checks for FlightMode channel but only if more than one flight mode has been set. Otherwise don't care
-		((settings.FlightModeNumber > 1) && (
-			settings.ChannelGroups[MANUALCONTROLSETTINGS_CHANNELGROUPS_FLIGHTMODE] >= MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE ||
+		// If we've got more than one possible valid FlightMode, we require a configured FlightMode channel
+		((settings.FlightModeNumber > 1) && (settings.ChannelGroups[MANUALCONTROLSETTINGS_CHANNELGROUPS_FLIGHTMODE] >= MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE)) ||
+		// Whenever FlightMode channel is configured, it needs to be valid regardless of FlightModeNumber settings
+		((settings.ChannelGroups[MANUALCONTROLSETTINGS_CHANNELGROUPS_FLIGHTMODE] < MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE) && (
 			cmd.Channel[MANUALCONTROLSETTINGS_CHANNELGROUPS_FLIGHTMODE] == (uint16_t) PIOS_RCVR_INVALID ||
-			cmd.Channel[MANUALCONTROLSETTINGS_CHANNELGROUPS_FLIGHTMODE] == (uint16_t) PIOS_RCVR_NODRIVER))) {
+			cmd.Channel[MANUALCONTROLSETTINGS_CHANNELGROUPS_FLIGHTMODE] == (uint16_t) PIOS_RCVR_NODRIVER ))) {
 
 		set_manual_control_error(SYSTEMALARMS_MANUALCONTROL_SETTINGS);
 
@@ -251,11 +252,16 @@ int32_t transmitter_control_update()
 		return -1;
 	}
 
+	// the block above validates the input configuration. this simply checks that the range is valid if flight mode is configured.
+	bool flightmode_valid_input = settings.ChannelGroups[MANUALCONTROLSETTINGS_CHANNELGROUPS_FLIGHTMODE] >= MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE ||
+		validInputRange(settings.ChannelMin[MANUALCONTROLSETTINGS_CHANNELGROUPS_FLIGHTMODE], settings.ChannelMax[MANUALCONTROLSETTINGS_CHANNELGROUPS_FLIGHTMODE], cmd.Channel[MANUALCONTROLSETTINGS_CHANNELGROUPS_FLIGHTMODE], CONNECTION_OFFSET);
+
 	// decide if we have valid manual input or not
-	valid_input_detected &= validInputRange(settings.ChannelMin[MANUALCONTROLSETTINGS_CHANNELGROUPS_THROTTLE], settings.ChannelMax[MANUALCONTROLSETTINGS_CHANNELGROUPS_THROTTLE], cmd.Channel[MANUALCONTROLSETTINGS_CHANNELGROUPS_THROTTLE]) &&
-	     validInputRange(settings.ChannelMin[MANUALCONTROLSETTINGS_CHANNELGROUPS_ROLL], settings.ChannelMax[MANUALCONTROLSETTINGS_CHANNELGROUPS_ROLL], cmd.Channel[MANUALCONTROLSETTINGS_CHANNELGROUPS_ROLL]) &&
-	     validInputRange(settings.ChannelMin[MANUALCONTROLSETTINGS_CHANNELGROUPS_YAW], settings.ChannelMax[MANUALCONTROLSETTINGS_CHANNELGROUPS_YAW], cmd.Channel[MANUALCONTROLSETTINGS_CHANNELGROUPS_YAW]) &&
-	     validInputRange(settings.ChannelMin[MANUALCONTROLSETTINGS_CHANNELGROUPS_PITCH], settings.ChannelMax[MANUALCONTROLSETTINGS_CHANNELGROUPS_PITCH], cmd.Channel[MANUALCONTROLSETTINGS_CHANNELGROUPS_PITCH]);
+	valid_input_detected &= validInputRange(settings.ChannelMin[MANUALCONTROLSETTINGS_CHANNELGROUPS_THROTTLE], settings.ChannelMax[MANUALCONTROLSETTINGS_CHANNELGROUPS_THROTTLE], cmd.Channel[MANUALCONTROLSETTINGS_CHANNELGROUPS_THROTTLE], CONNECTION_OFFSET_THROTTLE) &&
+	     validInputRange(settings.ChannelMin[MANUALCONTROLSETTINGS_CHANNELGROUPS_ROLL], settings.ChannelMax[MANUALCONTROLSETTINGS_CHANNELGROUPS_ROLL], cmd.Channel[MANUALCONTROLSETTINGS_CHANNELGROUPS_ROLL], CONNECTION_OFFSET) &&
+	     validInputRange(settings.ChannelMin[MANUALCONTROLSETTINGS_CHANNELGROUPS_YAW], settings.ChannelMax[MANUALCONTROLSETTINGS_CHANNELGROUPS_YAW], cmd.Channel[MANUALCONTROLSETTINGS_CHANNELGROUPS_YAW], CONNECTION_OFFSET) &&
+	     validInputRange(settings.ChannelMin[MANUALCONTROLSETTINGS_CHANNELGROUPS_PITCH], settings.ChannelMax[MANUALCONTROLSETTINGS_CHANNELGROUPS_PITCH], cmd.Channel[MANUALCONTROLSETTINGS_CHANNELGROUPS_PITCH], CONNECTION_OFFSET) &&
+	     flightmode_valid_input;
 
 	// Implement hysteresis loop on connection status
 	if (valid_input_detected && (++connected_count > 10)) {
@@ -585,14 +591,14 @@ static void resetRcvrActivity(struct rcvr_activity_fsm * fsm)
 	fsm->sample_count = 0;
 }
 
-static void updateRcvrActivitySample(uint32_t rcvr_id, uint16_t samples[], uint8_t max_channels) {
+static void updateRcvrActivitySample(uintptr_t rcvr_id, uint16_t samples[], uint8_t max_channels) {
 	for (uint8_t channel = 1; channel <= max_channels; channel++) {
 		// Subtract 1 because channels are 1 indexed
 		samples[channel - 1] = PIOS_RCVR_Read(rcvr_id, channel);
 	}
 }
 
-static bool updateRcvrActivityCompare(uint32_t rcvr_id, struct rcvr_activity_fsm * fsm)
+static bool updateRcvrActivityCompare(uintptr_t rcvr_id, struct rcvr_activity_fsm * fsm)
 {
 	bool activity_updated = false;
 
@@ -655,7 +661,7 @@ static bool updateRcvrActivity(struct rcvr_activity_fsm * fsm)
 		resetRcvrActivity(fsm);
 	}
 
-	extern uint32_t pios_rcvr_group_map[];
+	extern uintptr_t pios_rcvr_group_map[];
 	if (!pios_rcvr_group_map[fsm->group]) {
 		/* Unbound group, skip it */
 		goto group_completed;
@@ -928,9 +934,9 @@ static float scaleChannel(int16_t value, int16_t max, int16_t min, int16_t neutr
 	}
 
 	// Bound
-	if (valueScaled >  1.0) valueScaled =  1.0;
+	if (valueScaled >  1.0f) valueScaled =  1.0f;
 	else
-	if (valueScaled < -1.0) valueScaled = -1.0;
+	if (valueScaled < -1.0f) valueScaled = -1.0f;
 
 	return valueScaled;
 }
@@ -945,7 +951,7 @@ static uint32_t timeDifferenceMs(portTickType start_time, portTickType end_time)
  * @brief Determine if the manual input value is within acceptable limits
  * @returns return TRUE if so, otherwise return FALSE
  */
-bool validInputRange(int16_t min, int16_t max, uint16_t value)
+bool validInputRange(int16_t min, int16_t max, uint16_t value, uint16_t offset)
 {
 	if (min > max)
 	{
@@ -953,7 +959,7 @@ bool validInputRange(int16_t min, int16_t max, uint16_t value)
 		min = max;
 		max = tmp;
 	}
-	return (value >= min - CONNECTION_OFFSET && value <= max + CONNECTION_OFFSET);
+	return (value >= min - offset && value <= max + offset);
 }
 
 /**
@@ -961,7 +967,7 @@ bool validInputRange(int16_t min, int16_t max, uint16_t value)
  */
 static void applyDeadband(float *value, float deadband)
 {
-	if (fabs(*value) < deadband)
+	if (fabsf(*value) < deadband)
 		*value = 0.0f;
 	else
 		if (*value > 0.0f)

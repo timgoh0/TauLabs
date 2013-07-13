@@ -161,7 +161,7 @@ static const struct pios_mpu60x0_cfg pios_mpu6050_cfg = {
  *  eg. PWM, PPM, GCS, SPEKTRUM1, SPEKTRUM2, SBUS
  * NOTE: No slot in this map for NONE.
  */
-uint32_t pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE];
+uintptr_t pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE];
 
 #define PIOS_COM_TELEM_RF_RX_BUF_LEN 512
 #define PIOS_COM_TELEM_RF_TX_BUF_LEN 512
@@ -199,7 +199,7 @@ uintptr_t pios_waypoints_settings_fs_id;
 static void PIOS_Board_configure_com (const struct pios_usart_cfg *usart_port_cfg, size_t rx_buf_len, size_t tx_buf_len,
 		const struct pios_com_driver *com_driver, uintptr_t *pios_com_id)
 {
-	uint32_t pios_usart_id;
+	uintptr_t pios_usart_id;
 	if (PIOS_USART_Init(&pios_usart_id, usart_port_cfg)) {
 		PIOS_Assert(0);
 	}
@@ -233,18 +233,18 @@ static void PIOS_Board_configure_dsm(const struct pios_usart_cfg *pios_usart_dsm
 		const struct pios_com_driver *pios_usart_com_driver,enum pios_dsm_proto *proto,
 		ManualControlSettingsChannelGroupsOptions channelgroup,uint8_t *bind)
 {
-	uint32_t pios_usart_dsm_id;
+	uintptr_t pios_usart_dsm_id;
 	if (PIOS_USART_Init(&pios_usart_dsm_id, pios_usart_dsm_cfg)) {
 		PIOS_Assert(0);
 	}
 
-	uint32_t pios_dsm_id;
+	uintptr_t pios_dsm_id;
 	if (PIOS_DSM_Init(&pios_dsm_id, pios_dsm_cfg, pios_usart_com_driver,
 			pios_usart_dsm_id, *proto, *bind)) {
 		PIOS_Assert(0);
 	}
 
-	uint32_t pios_dsm_rcvr_id;
+	uintptr_t pios_dsm_rcvr_id;
 	if (PIOS_RCVR_Init(&pios_dsm_rcvr_id, &pios_dsm_rcvr_driver, pios_dsm_id)) {
 		PIOS_Assert(0);
 	}
@@ -301,21 +301,27 @@ void PIOS_Board_Init(void) {
 	PIOS_LED_Init(led_cfg);
 #endif	/* PIOS_INCLUDE_LED */
 
-#if defined(PIOS_INCLUDE_FLASH)
-	if (PIOS_SPI_Init(&pios_spi_flash_id, &pios_spi_flash_cfg)) {
-		PIOS_DEBUG_Assert(0);
-	}
 
-	/* Connect flash to the approrpiate interface and configure it */
-	uintptr_t flash_id;
-	if (PIOS_Flash_Jedec_Init(&flash_id, pios_spi_flash_id, 0, &flash_m25p_cfg) != 0)
+#if defined(PIOS_INCLUDE_FLASH)
+	/* Inititialize all flash drivers */
+	if (PIOS_Flash_Internal_Init(&pios_internal_flash_id, &flash_internal_cfg) != 0)
 		panic(1);
-	if (PIOS_FLASHFS_Logfs_Init(&pios_uavo_settings_fs_id, &flashfs_m25p_settings_cfg, &pios_jedec_flash_driver, flash_id) != 0)
+
+	/* Register the partition table */
+	PIOS_FLASH_register_partition_table(pios_flash_partition_table, NELEMENTS(pios_flash_partition_table));
+
+	/* Mount all filesystems */
+	if (PIOS_FLASHFS_Logfs_Init(&pios_uavo_settings_fs_id, &flashfs_settings_cfg, FLASH_PARTITION_LABEL_SETTINGS) != 0)
 		panic(1);
-	if (PIOS_FLASHFS_Logfs_Init(&pios_waypoints_settings_fs_id, &flashfs_m25p_waypoints_cfg, &pios_jedec_flash_driver, flash_id) != 0)
+
+#if defined(PIOS_INCLUDE_EXTERNAL_FLASH_WAYPOINTS)
+	/* Use external flash chip to store waypoints */
+	if (PIOS_FLASHFS_Logfs_Init(&pios_waypoints_settings_fs_id, &flashfs_external_waypoints_cfg, FLASH_PARTITION_LABEL_WAYPOINTS) != 0)
 		panic(1);
-#endif
-	
+#endif /* PIOS_INCLUDE_EXTERNAL_FLASH_WAYPOINTS */
+
+#endif	/* PIOS_INCLUDE_FLASH */
+
 	/* Initialize UAVObject libraries */
 	EventDispatcherInitialize();
 	UAVObjInitialize();
@@ -387,7 +393,7 @@ void PIOS_Board_Init(void) {
 	usb_hid_present = true;
 #endif
 
-	uint32_t pios_usb_id;
+	uintptr_t pios_usb_id;
 	PIOS_USB_Init(&pios_usb_id, PIOS_BOARD_HW_DEFS_GetUsbCfg(bdinfo->board_rev));
 
 #if defined(PIOS_INCLUDE_USB_CDC)
@@ -401,7 +407,7 @@ void PIOS_Board_Init(void) {
 		hw_usb_vcpport = HWFLYINGF4_USB_VCPPORT_DISABLED;
 	}
 
-	uint32_t pios_usb_cdc_id;
+	uintptr_t pios_usb_cdc_id;
 	if (PIOS_USB_CDC_Init(&pios_usb_cdc_id, &pios_usb_cdc_cfg, pios_usb_id)) {
 		PIOS_Assert(0);
 	}
@@ -468,7 +474,7 @@ void PIOS_Board_Init(void) {
 		hw_usb_hidport = HWFLYINGF4_USB_HIDPORT_DISABLED;
 	}
 
-	uint32_t pios_usb_hid_id;
+	uintptr_t pios_usb_hid_id;
 	if (PIOS_USB_HID_Init(&pios_usb_hid_id, &pios_usb_hid_cfg, pios_usb_id)) {
 		PIOS_Assert(0);
 	}
@@ -519,15 +525,15 @@ void PIOS_Board_Init(void) {
 		//hardware signal inverter required
 #if defined(PIOS_INCLUDE_SBUS) && defined(PIOS_INCLUDE_USART)
 		{
-			uint32_t pios_usart_sbus_id;
+			uintptr_t pios_usart_sbus_id;
 			if (PIOS_USART_Init(&pios_usart_sbus_id, &pios_usart1_sbus_cfg)) {
 				PIOS_Assert(0);
 			}
-			uint32_t pios_sbus_id;
+			uintptr_t pios_sbus_id;
 			if (PIOS_SBus_Init(&pios_sbus_id, &pios_usart1_sbus_aux_cfg, &pios_usart_com_driver, pios_usart_sbus_id)) {
 				PIOS_Assert(0);
 			}
-			uint32_t pios_sbus_rcvr_id;
+			uintptr_t pios_sbus_rcvr_id;
 			if (PIOS_RCVR_Init(&pios_sbus_rcvr_id, &pios_sbus_rcvr_driver, pios_sbus_id)) {
 				PIOS_Assert(0);
 			}
@@ -703,10 +709,10 @@ void PIOS_Board_Init(void) {
 	case HWFLYINGF4_RCVRPORT_PWM:
 #if defined(PIOS_INCLUDE_PWM)
 		{
-			uint32_t pios_pwm_id;
+			uintptr_t pios_pwm_id;
 			PIOS_PWM_Init(&pios_pwm_id, &pios_pwm_cfg);
 
-			uint32_t pios_pwm_rcvr_id;
+			uintptr_t pios_pwm_rcvr_id;
 			if (PIOS_RCVR_Init(&pios_pwm_rcvr_id, &pios_pwm_rcvr_driver, pios_pwm_id)) {
 				PIOS_Assert(0);
 			}
@@ -718,10 +724,10 @@ void PIOS_Board_Init(void) {
 	case HWFLYINGF4_RCVRPORT_PPMOUTPUTS:
 #if defined(PIOS_INCLUDE_PPM)
 		{
-			uint32_t pios_ppm_id;
+			uintptr_t pios_ppm_id;
 			PIOS_PPM_Init(&pios_ppm_id, &pios_ppm_cfg);
 
-			uint32_t pios_ppm_rcvr_id;
+			uintptr_t pios_ppm_rcvr_id;
 			if (PIOS_RCVR_Init(&pios_ppm_rcvr_id, &pios_ppm_rcvr_driver, pios_ppm_id)) {
 				PIOS_Assert(0);
 			}
@@ -733,10 +739,10 @@ void PIOS_Board_Init(void) {
 		/* This is a combination of PPM and PWM inputs */
 #if defined(PIOS_INCLUDE_PPM)
 		{
-			uint32_t pios_ppm_id;
+			uintptr_t pios_ppm_id;
 			PIOS_PPM_Init(&pios_ppm_id, &pios_ppm_cfg);
 
-			uint32_t pios_ppm_rcvr_id;
+			uintptr_t pios_ppm_rcvr_id;
 			if (PIOS_RCVR_Init(&pios_ppm_rcvr_id, &pios_ppm_rcvr_driver, pios_ppm_id)) {
 				PIOS_Assert(0);
 			}
@@ -745,10 +751,10 @@ void PIOS_Board_Init(void) {
 #endif	/* PIOS_INCLUDE_PPM */
 #if defined(PIOS_INCLUDE_PWM)
 		{
-			uint32_t pios_pwm_id;
+			uintptr_t pios_pwm_id;
 			PIOS_PWM_Init(&pios_pwm_id, &pios_pwm_with_ppm_cfg);
 
-			uint32_t pios_pwm_rcvr_id;
+			uintptr_t pios_pwm_rcvr_id;
 			if (PIOS_RCVR_Init(&pios_pwm_rcvr_id, &pios_pwm_rcvr_driver, pios_pwm_id)) {
 				PIOS_Assert(0);
 			}
@@ -761,9 +767,9 @@ void PIOS_Board_Init(void) {
 
 #if defined(PIOS_INCLUDE_GCSRCVR)
 	GCSReceiverInitialize();
-	uint32_t pios_gcsrcvr_id;
+	uintptr_t pios_gcsrcvr_id;
 	PIOS_GCSRCVR_Init(&pios_gcsrcvr_id);
-	uint32_t pios_gcsrcvr_rcvr_id;
+	uintptr_t pios_gcsrcvr_rcvr_id;
 	if (PIOS_RCVR_Init(&pios_gcsrcvr_rcvr_id, &pios_gcsrcvr_rcvr_driver, pios_gcsrcvr_id)) {
 		PIOS_Assert(0);
 	}
