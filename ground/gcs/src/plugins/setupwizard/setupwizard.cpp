@@ -47,11 +47,11 @@
 #include "pages/notyetimplementedpage.h"
 #include "pages/rebootpage.h"
 #include "pages/outputcalibrationpage.h"
-#include "extensionsystem/pluginmanager.h"
-#include "vehicleconfigurationhelper.h"
-#include "actuatorsettings.h"
 #include "pages/autoupdatepage.h"
+
 #include "uploader/uploadergadgetfactory.h"
+#include "extensionsystem/pluginmanager.h"
+#include "actuatorsettings.h"
 
 SetupWizard::SetupWizard(QWidget *parent) : QWizard(parent), VehicleConfigurationSource(),
     m_controllerType(NULL),

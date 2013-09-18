@@ -31,7 +31,8 @@
 #define ABSTRACTWIZARDPAGE_H
 
 #include <QWizardPage>
-#include "setupwizard.h"
+
+class SetupWizard;
 
 class AbstractWizardPage : public QWizardPage {
     Q_OBJECT

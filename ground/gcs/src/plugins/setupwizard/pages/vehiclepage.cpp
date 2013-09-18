@@ -28,6 +28,7 @@
 
 #include "vehiclepage.h"
 #include "ui_vehiclepage.h"
+#include "setupwizard.h"
 
 VehiclePage::VehiclePage(SetupWizard *wizard, QWidget *parent) :
     AbstractWizardPage(wizard, parent),

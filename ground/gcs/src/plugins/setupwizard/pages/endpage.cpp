@@ -25,12 +25,15 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
+#include <QMessageBox>
+
 #include "endpage.h"
 #include "ui_endpage.h"
-#include <coreplugin/modemanager.h>
+
 #include <extensionsystem/pluginmanager.h>
 #include <configgadgetfactory.h>
-#include <QMessageBox>
+#include "setupwizard.h"
+
 
 EndPage::EndPage(SetupWizard *wizard, QWidget *parent) :
     AbstractWizardPage(wizard, parent),
@@ -52,7 +55,6 @@ void EndPage::openInputWizard()
     ConfigGadgetFactory *configGadgetFactory = pm->getObject<ConfigGadgetFactory>();
 
     if (configGadgetFactory) {
-        // Core::ModeManager::instance()->activateModeByWorkspaceName("Configuration");
         getWizard()->close();
         configGadgetFactory->startInputWizard();
     } else {

@@ -30,7 +30,7 @@
 
 #include "inputpage_notsupported.h"
 #include "ui_inputpage_notsupported.h"
-#include "setupwizard.h"
+
 #include "extensionsystem/pluginmanager.h"
 #include "uavobjectmanager.h"
 

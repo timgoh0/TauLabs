@@ -27,8 +27,10 @@
  */
 
 #include <QMessageBox>
+
 #include "savepage.h"
 #include "ui_savepage.h"
+
 #include "setupwizard.h"
 #include "vehicleconfigurationhelper.h"
 

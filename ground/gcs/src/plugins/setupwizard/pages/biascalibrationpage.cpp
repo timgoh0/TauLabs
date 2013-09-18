@@ -29,8 +29,10 @@
 
 #include <QMessageBox>
 #include <QDebug>
+
 #include "biascalibrationpage.h"
 #include "ui_biascalibrationpage.h"
+
 #include "setupwizard.h"
 
 BiasCalibrationPage::BiasCalibrationPage(SetupWizard *wizard, QWidget *parent) :

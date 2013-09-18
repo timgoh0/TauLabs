@@ -33,7 +33,6 @@
 #include <coreplugin/iboardtype.h>
 #include <coreplugin/icore.h>
 #include <coreplugin/connectionmanager.h>
-#include "setupwizard.h"
 #include "uavtalk/telemetrymanager.h"
 #include "abstractwizardpage.h"
 

@@ -12,11 +12,12 @@
  *****************************************************************************/
 #include "autoupdatepage.h"
 #include "ui_autoupdatepage.h"
-#include "setupwizard.h"
+
 #include <extensionsystem/pluginmanager.h>
 #include <uavobjectutil/uavobjectutilmanager.h>
-#include <extensionsystem/pluginmanager.h>
 #include "uploader/uploadergadgetfactory.h"
+#include "setupwizard.h"
+
 
 AutoUpdatePage::AutoUpdatePage(SetupWizard *wizard, QWidget *parent) :
     AbstractWizardPage(wizard, parent),

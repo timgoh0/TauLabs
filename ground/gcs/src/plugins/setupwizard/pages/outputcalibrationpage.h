@@ -31,7 +31,6 @@
 
 #include <QtSvg>
 #include "abstractwizardpage.h"
-#include "setupwizard.h"
 #include "outputcalibrationutil.h"
 #include "vehicleconfigurationhelper.h"
 

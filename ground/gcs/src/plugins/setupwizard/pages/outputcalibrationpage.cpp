@@ -28,8 +28,10 @@
 
 #include "outputcalibrationpage.h"
 #include "ui_outputcalibrationpage.h"
-#include "systemalarms.h"
+
+#include "setupwizard.h"
 #include "uavobjectmanager.h"
+#include "systemalarms.h"
 
 OutputCalibrationPage::OutputCalibrationPage(SetupWizard *wizard, QWidget *parent) :
     AbstractWizardPage(wizard, parent), ui(new Ui::OutputCalibrationPage), m_vehicleBoundsItem(0),

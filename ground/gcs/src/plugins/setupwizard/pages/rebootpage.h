@@ -29,6 +29,8 @@
 #ifndef REBOOTPAGE_H
 #define REBOOTPAGE_H
 
+#include <QTimer>
+
 #include "abstractwizardpage.h"
 
 namespace Ui {

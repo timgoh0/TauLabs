@@ -30,9 +30,10 @@
 
 #include "inputpage.h"
 #include "ui_inputpage.h"
-#include "setupwizard.h"
+
 #include "extensionsystem/pluginmanager.h"
 #include "uavobjectmanager.h"
+#include "setupwizard.h"
 
 InputPage::InputPage(SetupWizard *wizard, QWidget *parent) :
     AbstractWizardPage(wizard, parent),

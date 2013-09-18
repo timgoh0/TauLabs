@@ -30,6 +30,7 @@
 #define INPUTPAGE_H
 
 #include "abstractwizardpage.h"
+#include <coreplugin/iboardtype.h>
 
 namespace Ui {
 class InputPage;

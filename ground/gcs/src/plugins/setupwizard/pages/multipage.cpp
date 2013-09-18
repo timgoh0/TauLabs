@@ -28,6 +28,7 @@
 
 #include "multipage.h"
 #include "ui_multipage.h"
+
 #include "setupwizard.h"
 
 MultiPage::MultiPage(SetupWizard *wizard, QWidget *parent) :

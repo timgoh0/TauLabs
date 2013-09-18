@@ -28,6 +28,7 @@
 
 #include "summarypage.h"
 #include "ui_summarypage.h"
+
 #include "setupwizard.h"
 #include "connectiondiagram.h"
 
