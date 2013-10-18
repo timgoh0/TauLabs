@@ -4,7 +4,7 @@ BOOTLOADER_VERSION  := 0x81
 HW_TYPE             := 0x01
 
 MCU                 := cortex-m4
-CHIP                := STM32F407VGT
+CHIP                := STM32F401VCT
 BOARD               := STM32F4xx_DISCOVERYF4
 MODEL               := HD
 MODEL_SUFFIX        := 
@@ -22,12 +22,12 @@ EE_BANK_SIZE        := 0x00008000
 # Leave the remaining 64KB sector for other uses
 
 FW_BANK_BASE        := 0x08020000  # Start of firmware flash (128kb)
-FW_BANK_SIZE        := 0x00040000  # Should include FW_DESC_SIZE (256kb)
+FW_BANK_SIZE        := 0x00020000  # Should include FW_DESC_SIZE (128kb)
 
 FW_DESC_SIZE        := 0x00000064
 
 EF_BANK_BASE        := 0x08000000  # Start of entire flash image (usually start of bootloader as well)
-EF_BANK_SIZE        := 0x00060000  # Size of the entire flash image (from bootloader until end of firmware)
+EF_BANK_SIZE        := 0x00040000  # Size of the entire flash image (from bootloader until end of firmware)
 
 OSCILLATOR_FREQ     :=   8000000
-SYSCLK_FREQ         := 168000000
+SYSCLK_FREQ         :=  84000000

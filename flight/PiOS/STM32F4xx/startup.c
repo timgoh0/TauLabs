@@ -42,7 +42,7 @@ static void		default_cpu_handler(void) __attribute__((noreturn, naked, no_instru
 extern char		_sbss, _ebss;
 
 /** DATA symbols XXX should have a header that defines all of these */
-extern char		_sidata, _sdata, _edata, _sfast, _efast;
+extern char		_sidata, _sdata, _edata;
 
 /** The bootstrap/IRQ stack XXX should define size somewhere else */
 char			irq_stack[1024] __attribute__((section(".irqstack")));
@@ -84,9 +84,6 @@ _main(void)
 
 	/* zero the BSS */
 	memset(&_sbss, 0, &_ebss - &_sbss);
-
-	/* zero any 'fast' RAM that's been used */
-	memset(&_sfast, 0, &_efast - &_sfast);
 
 	/* fill most of the IRQ/bootstrap stack with a watermark pattern so we can measure how much is used */
 	/* leave a little space at the top in case memset() isn't a leaf with no locals */

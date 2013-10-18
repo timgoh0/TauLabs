@@ -127,7 +127,7 @@ static const struct pios_spi_cfg pios_spi_accel_cfg = {
 		.SPI_CRCPolynomial     = 7,
 		.SPI_CPOL              = SPI_CPOL_High,
 		.SPI_CPHA              = SPI_CPHA_2Edge,
-		.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4,	//168MHz / 4 == 42MHz
+		.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2,	//84MHz / 2 == 42MHz
 	},
 	.use_crc = false,
 	.dma = {
@@ -264,7 +264,7 @@ static const struct pios_flash_sector_range stm32f4_sectors[] = {
 	},
 	{
 		.base_sector = 5,
-		.last_sector = 11,
+		.last_sector = 5,
 		.sector_size = FLASH_SECTOR_128KB,
 	},
 
@@ -339,9 +339,9 @@ static const struct pios_flash_partition pios_flash_partition_table[] = {
 		.label        = FLASH_PARTITION_LABEL_FW,
 		.chip_desc    = &pios_flash_chip_internal,
 		.first_sector = 5,
-		.last_sector  = 6,
+		.last_sector  = 5,
 		.chip_offset  = (4 * FLASH_SECTOR_16KB) + (1 * FLASH_SECTOR_64KB),
-		.size         = (6 - 5 + 1) * FLASH_SECTOR_128KB,
+		.size         = (5 - 5 + 1) * FLASH_SECTOR_128KB,
 	},
 
 	/* NOTE: sectors 7-11 of the internal flash are currently unallocated */
