@@ -128,6 +128,94 @@ static void panic(int32_t code) {
 	}
 }
 
+/**
+ * Configuration for L3GD20 chip
+ */
+#if defined(PIOS_INCLUDE_L3GD20)
+#include "pios_l3gd20.h"
+static const struct pios_exti_cfg pios_exti_l3gd20_cfg __exti_config = {
+	.vector = PIOS_L3GD20_IRQHandler,
+	.line = EXTI_Line1,
+	.pin = {
+		.gpio = GPIOE,
+		.init = {
+			.GPIO_Pin = GPIO_Pin_1,
+			.GPIO_Speed = GPIO_Speed_50MHz,
+			.GPIO_Mode = GPIO_Mode_IN,
+			.GPIO_OType = GPIO_OType_OD,
+			.GPIO_PuPd = GPIO_PuPd_NOPULL,
+		},
+	},
+	.irq = {
+		.init = {
+			.NVIC_IRQChannel = EXTI1_IRQn,
+			.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_HIGH,
+			.NVIC_IRQChannelSubPriority = 0,
+			.NVIC_IRQChannelCmd = ENABLE,
+		},
+	},
+	.exti = {
+		.init = {
+			.EXTI_Line = EXTI_Line1, // matches above GPIO pin
+			.EXTI_Mode = EXTI_Mode_Interrupt,
+			.EXTI_Trigger = EXTI_Trigger_Rising,
+			.EXTI_LineCmd = ENABLE,
+		},
+	},
+};
+
+static const struct pios_l3gd20_cfg pios_l3gd20_cfg = {
+	.exti_cfg = &pios_exti_l3gd20_cfg,
+	.range = PIOS_L3GD20_SCALE_500_DEG,
+};
+#endif /* PIOS_INCLUDE_L3GD20 */
+
+
+
+/**
+ * Configuration for the LSM303 chip
+ */
+#if defined(PIOS_INCLUDE_LSM303)
+#include "pios_lsm303.h"
+static const struct pios_exti_cfg pios_exti_lsm303_cfg __exti_config = {
+	.vector = PIOS_LSM303_IRQHandler,
+	.line = EXTI_Line4,
+	.pin = {
+		.gpio = GPIOE,
+		.init = {
+			.GPIO_Pin = GPIO_Pin_4,
+			.GPIO_Speed = GPIO_Speed_50MHz,
+			.GPIO_Mode = GPIO_Mode_IN,
+			.GPIO_OType = GPIO_OType_OD,
+			.GPIO_PuPd = GPIO_PuPd_NOPULL,
+		},
+	},
+	.irq = {
+		.init = {
+			.NVIC_IRQChannel = EXTI4_IRQn,
+			.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
+			.NVIC_IRQChannelSubPriority = 0,
+			.NVIC_IRQChannelCmd = ENABLE,
+		},
+	},
+	.exti = {
+		.init = {
+			.EXTI_Line = EXTI_Line4, // matches above GPIO pin
+			.EXTI_Mode = EXTI_Mode_Interrupt,
+			.EXTI_Trigger = EXTI_Trigger_Rising,
+			.EXTI_LineCmd = ENABLE,
+		},
+	},
+};
+
+static const struct pios_lsm303_cfg pios_lsm303_cfg = {
+	.exti_cfg = &pios_exti_lsm303_cfg,
+	.devicetype = PIOS_LSM303DLHC_DEVICE,
+	.orientation = PIOS_LSM303_TOP_180DEG,
+};
+#endif /* PIOS_INCLUDE_LSM303 */
+
+
 #include <pios_board_info.h>
 /**
  * PIOS_Board_Init()
@@ -367,6 +455,72 @@ void PIOS_Board_Init(void) {
 #if defined(PIOS_INCLUDE_GPIO)
 	PIOS_GPIO_Init();
 #endif
+
+#if defined(PIOS_INCLUDE_SPI)
+	if (PIOS_SPI_Init(&pios_spi_gyro_id, &pios_spi_gyro_cfg)) {
+		PIOS_DEBUG_Assert(0);
+	}
+#endif
+
+#if defined(PIOS_INCLUDE_L3GD20) && defined(PIOS_INCLUDE_SPI)
+	if (PIOS_L3GD20_Init(pios_spi_gyro_id, 0, &pios_l3gd20_cfg) != 0)
+		panic(1);
+	if (PIOS_L3GD20_Test() != 0)
+		panic(1);
+
+	// To be safe map from UAVO enum to driver enum
+	/*
+	 * FIXME: add support for this to l3gd20 driver
+	uint8_t hw_gyro_range;
+	HwFlyingF3GyroRangeGet(&hw_gyro_range);
+	switch(hw_gyro_range) {
+		case HWFLYINGF3_GYRORANGE_250:
+			PIOS_L3GD20_SetRange(PIOS_L3GD20_SCALE_250_DEG);
+			break;
+		case HWFLYINGF3_GYRORANGE_500:
+			PIOS_L3GD20_SetRange(PIOS_L3GD20_SCALE_500_DEG);
+			break;
+		case HWFLYINGF3_GYRORANGE_1000:
+			//FIXME: how to behave in this case?
+			PIOS_L3GD20_SetRange(PIOS_L3GD20_SCALE_2000_DEG);
+			break;
+		case HWFLYINGF3_GYRORANGE_2000:
+			PIOS_L3GD20_SetRange(PIOS_L3GD20_SCALE_2000_DEG);
+			break;
+	}
+	*/
+
+	PIOS_WDG_Clear();
+	PIOS_DELAY_WaitmS(50);
+	PIOS_WDG_Clear();
+#endif /* PIOS_INCLUDE_L3GD20 */
+
+#if defined(PIOS_INCLUDE_I2C)
+	if (PIOS_I2C_Init(&pios_i2c_internal_id, &pios_i2c_internal_cfg)) {
+		PIOS_DEBUG_Assert(0);
+	}
+	if (PIOS_I2C_CheckClear(pios_i2c_internal_id) != 0)
+		panic(3);
+#endif
+
+#if defined(PIOS_INCLUDE_LSM303) && defined(PIOS_INCLUDE_I2C)
+	if (PIOS_LSM303_Init(pios_i2c_internal_id, &pios_lsm303_cfg) != 0)
+		panic(2);
+	if (PIOS_LSM303_Accel_Test() != 0)
+		panic(2);
+	if (PIOS_LSM303_Mag_Test() != 0)
+		panic(2);
+
+    PIOS_LSM303_Accel_SetRange(PIOS_LSM303_ACCEL_4G);
+
+	//there is no setting for the mag scale yet
+	PIOS_LSM303_Mag_SetRange(PIOS_LSM303_MAG_1_9GA);
+
+	PIOS_WDG_Clear();
+	PIOS_DELAY_WaitmS(50);
+	PIOS_WDG_Clear();
+#endif /* PIOS_INCLUDE_LSM303 && PIOS_INCLUDE_I2C*/
+
 
 	/* Make sure we have at least one telemetry link configured or else fail initialization */
 	PIOS_Assert(pios_com_telem_usb_id);

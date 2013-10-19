@@ -110,14 +110,14 @@ const struct pios_led_cfg * PIOS_BOARD_HW_DEFS_GetLedCfg (uint32_t board_revisio
 #include <pios_spi_priv.h>
 
 /* SPI1 Interface
- *      - Used for LIS302DL Accelerometer
+ *      - Used for L3GD20 gyro
  */
-void PIOS_SPI_accel_irq_handler(void);
-void DMA1_Stream0_IRQHandler(void) __attribute__((alias("PIOS_SPI_accel_irq_handler")));
-void DMA1_Stream5_IRQHandler(void) __attribute__((alias("PIOS_SPI_accel_irq_handler")));
-static const struct pios_spi_cfg pios_spi_accel_cfg = {
+void PIOS_SPI_gyro_irq_handler(void);
+void DMA1_Stream0_IRQHandler(void) __attribute__((alias("PIOS_SPI_gyro_irq_handler")));
+void DMA1_Stream5_IRQHandler(void) __attribute__((alias("PIOS_SPI_gyro_irq_handler")));
+static const struct pios_spi_cfg pios_spi_gyro_cfg = {
 	.regs = SPI1,
-//	.remap = GPIO_AF_SPI2,
+	.remap = GPIO_AF_SPI2,
 	.init = {
 		.SPI_Mode              = SPI_Mode_Master,
 		.SPI_Direction         = SPI_Direction_2Lines_FullDuplex,
@@ -125,9 +125,9 @@ static const struct pios_spi_cfg pios_spi_accel_cfg = {
 		.SPI_NSS               = SPI_NSS_Soft,
 		.SPI_FirstBit          = SPI_FirstBit_MSB,
 		.SPI_CRCPolynomial     = 7,
-		.SPI_CPOL              = SPI_CPOL_High,
-		.SPI_CPHA              = SPI_CPHA_2Edge,
-		.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2,	//84MHz / 2 == 42MHz
+		.SPI_CPOL              = SPI_CPOL_Low,
+		.SPI_CPHA              = SPI_CPHA_1Edge,
+		.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8,	//84MHz / 8 == 10.5MHz
 	},
 	.use_crc = false,
 	.dma = {
@@ -184,7 +184,7 @@ static const struct pios_spi_cfg pios_spi_accel_cfg = {
 		.gpio = GPIOA,
 		.init = {
 			.GPIO_Pin = GPIO_Pin_5,
-			.GPIO_Speed = GPIO_Speed_100MHz,
+			.GPIO_Speed = GPIO_Speed_50MHz,
 			.GPIO_Mode = GPIO_Mode_AF,
 			.GPIO_OType = GPIO_OType_PP,
 			.GPIO_PuPd = GPIO_PuPd_NOPULL
@@ -217,7 +217,7 @@ static const struct pios_spi_cfg pios_spi_accel_cfg = {
 	.ssel = { {
 		.gpio = GPIOE,
 		.init = {
-			.GPIO_Pin = GPIO_Pin_2,
+			.GPIO_Pin = GPIO_Pin_3,
 			.GPIO_Speed = GPIO_Speed_50MHz,
 			.GPIO_Mode  = GPIO_Mode_OUT,
 			.GPIO_OType = GPIO_OType_PP,
@@ -226,14 +226,97 @@ static const struct pios_spi_cfg pios_spi_accel_cfg = {
 	} },
 };
 
-uint32_t pios_spi_accel_id;
-void PIOS_SPI_accel_irq_handler(void)
+uint32_t pios_spi_gyro_id;
+void PIOS_SPI_gyro_irq_handler(void)
 {
 	/* Call into the generic code to handle the IRQ for this specific device */
-	PIOS_SPI_IRQ_Handler(pios_spi_accel_id);
+	PIOS_SPI_IRQ_Handler(pios_spi_gyro_id);
 }
 
 #endif	/* PIOS_INCLUDE_SPI */
+
+
+#if defined(PIOS_INCLUDE_I2C)
+
+#include <pios_i2c_priv.h>
+
+/*
+ * I2C Adapters
+ */
+void PIOS_I2C_internal_ev_irq_handler(void);
+void PIOS_I2C_internal_er_irq_handler(void);
+void I2C1_EV_IRQHandler() __attribute__ ((alias ("PIOS_I2C_internal_ev_irq_handler")));
+void I2C1_ER_IRQHandler() __attribute__ ((alias ("PIOS_I2C_internal_er_irq_handler")));
+
+static const struct pios_i2c_adapter_cfg pios_i2c_internal_cfg = {
+  .regs = I2C1,
+  .remap = GPIO_AF_I2C1,
+  .init = {
+    .I2C_Mode                = I2C_Mode_I2C,
+    .I2C_OwnAddress1         = 0,
+    .I2C_Ack                 = I2C_Ack_Enable,
+    .I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit,
+    .I2C_DutyCycle           = I2C_DutyCycle_2,
+    .I2C_ClockSpeed          = 400000,	/* bits/s */
+  },
+  .transfer_timeout_ms = 50,
+  .scl = {
+    .gpio = GPIOB,
+    .init = {
+			.GPIO_Pin = GPIO_Pin_6,
+            .GPIO_Mode  = GPIO_Mode_AF,
+            .GPIO_Speed = GPIO_Speed_50MHz,
+            .GPIO_OType = GPIO_OType_OD,
+            .GPIO_PuPd  = GPIO_PuPd_NOPULL,
+    },
+	.pin_source = GPIO_PinSource6,
+  },
+  .sda = {
+    .gpio = GPIOB,
+    .init = {
+			.GPIO_Pin = GPIO_Pin_9,
+            .GPIO_Mode  = GPIO_Mode_AF,
+            .GPIO_Speed = GPIO_Speed_50MHz,
+            .GPIO_OType = GPIO_OType_OD,
+            .GPIO_PuPd  = GPIO_PuPd_NOPULL,
+    },
+	.pin_source = GPIO_PinSource9,
+  },
+  .event = {
+    .flags   = 0,		/* FIXME: check this */
+    .init = {
+			.NVIC_IRQChannel = I2C1_EV_IRQn,
+			.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_HIGHEST,
+			.NVIC_IRQChannelSubPriority = 0,
+			.NVIC_IRQChannelCmd = ENABLE,
+    },
+  },
+  .error = {
+    .flags   = 0,		/* FIXME: check this */
+    .init = {
+			.NVIC_IRQChannel = I2C1_ER_IRQn,
+			.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_HIGHEST,
+			.NVIC_IRQChannelSubPriority = 0,
+			.NVIC_IRQChannelCmd = ENABLE,
+    },
+  },
+};
+
+uint32_t pios_i2c_internal_id;
+void PIOS_I2C_internal_ev_irq_handler(void)
+{
+  /* Call into the generic code to handle the IRQ for this specific device */
+  PIOS_I2C_EV_IRQ_Handler(pios_i2c_internal_id);
+}
+
+void PIOS_I2C_internal_er_irq_handler(void)
+{
+  /* Call into the generic code to handle the IRQ for this specific device */
+  PIOS_I2C_ER_IRQ_Handler(pios_i2c_internal_id);
+}
+
+#endif /* PIOS_INCLUDE_I2C */
+
 
 #if defined(PIOS_INCLUDE_FLASH)
 #include "pios_flashfs_logfs_priv.h"
