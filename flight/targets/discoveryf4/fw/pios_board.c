@@ -167,6 +167,7 @@ static const struct pios_exti_cfg pios_exti_l3gd20_cfg __exti_config = {
 static const struct pios_l3gd20_cfg pios_l3gd20_cfg = {
 	.exti_cfg = &pios_exti_l3gd20_cfg,
 	.range = PIOS_L3GD20_SCALE_500_DEG,
+    .orientation = PIOS_L3GD20_TOP_0DEG,
 };
 #endif /* PIOS_INCLUDE_L3GD20 */
 

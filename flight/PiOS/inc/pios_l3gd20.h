@@ -121,10 +121,19 @@ enum pios_l3gd20_filter {
 };
 
 
+//For compatibility with legacy code, 90 degrees is the first option
+enum pios_l3gd20_orientation {    
+    PIOS_L3GD20_TOP_90DEG   = 0x00,
+    PIOS_L3GD20_TOP_0DEG    = 0x01,
+    PIOS_L3GD20_TOP_180DEG  = 0x02,
+    PIOS_L3GD20_TOP_270DEG  = 0x03
+};
+
 struct pios_l3gd20_cfg {
 	const struct pios_exti_cfg * exti_cfg; /* Pointer to the EXTI configuration */
 
 	enum pios_l3gd20_range range;
+    enum pios_l3gd20_orientation orientation;
 };
 
 /* Public Functions */

@@ -433,12 +433,29 @@ bool PIOS_L3GD20_IRQHandler(void)
 
 	memcpy((uint8_t *)&data.gyro_x, &rec[1], 6);
 
-	// TODO: This reordering is specific to the FlyingF3 chip placement.  Whenever
-	// this code is used on another board add an orientation mapping to the configuration
 	struct pios_sensor_gyro_data normalized_data;
 	float scale = PIOS_L3GD20_GetScale();
-	normalized_data.y = data.gyro_x * scale;
-	normalized_data.x = data.gyro_y * scale;
+    
+    switch(pios_l3gd20_dev->cfg->orientation){
+    case PIOS_L3GD20_TOP_0DEG:
+	    normalized_data.x = +data.gyro_x * scale;
+	    normalized_data.y = -data.gyro_y * scale;
+        break;
+    default:    //Fall through for legacy reasons
+    case PIOS_L3GD20_TOP_90DEG:
+	    normalized_data.x = +data.gyro_y * scale;
+	    normalized_data.y = +data.gyro_x * scale;
+        break;
+    case PIOS_L3GD20_TOP_180DEG:
+	    normalized_data.x = -data.gyro_x * scale;
+	    normalized_data.y = +data.gyro_y * scale;
+        break;
+    case PIOS_L3GD20_TOP_270DEG:
+	    normalized_data.x = -data.gyro_y * scale;
+	    normalized_data.y = -data.gyro_x * scale;
+        break;
+   
+    }
 	normalized_data.z = -data.gyro_z * scale;
 	normalized_data.temperature = PIOS_L3GD20_GetRegIsr(PIOS_L3GD20_OUT_TEMP, &woken);
 
