@@ -41,6 +41,22 @@ MODULES += FirmwareIAP
 MODULES += Telemetry
 
 
+
+OPTMODULES += GPS
+#OPTMODULES += PathPlanner
+OPTMODULES += AltitudeHold 
+#OPTMODULES += VtolPathFollower 
+#OPTMODULES += FixedWingPathFollower
+#OPTMODULES += GroundPathFollower
+OPTMODULES += CameraStab
+OPTMODULES += Autotune
+OPTMODULES += TxPID
+#OPTMODULES += VibrationAnalysis
+#OPTMODULES += UAVOMavlinkBridge
+#OPTMODULES += Battery
+#OPTMODULES += ComUsbBridge
+OPTMODULES += Airspeed/revolution
+
 # Paths
 OPUAVTALKINC = $(OPUAVTALK)/inc
 OPUAVOBJINC = $(OPUAVOBJ)/inc
@@ -69,6 +85,7 @@ MAVLINKINC = $(FLIGHTLIB)/mavlink/v1.0/common
 SRC = 
 # optional component libraries
 include $(PIOSCOMMONLIB)/FreeRTOS/library.mk
+#include $(PIOSCOMMONLIB)/dosfs/library.mk
 include $(FLIGHTLIB)/CMSIS3/DSP_Lib/library.mk
 
 
@@ -114,6 +131,7 @@ SRC += $(PIOSCOMMON)/pios_delay.c
 SRC += $(PIOSCOMMON)/pios_crc.c
 SRC += $(PIOSCOMMON)/pios_com.c
 SRC += $(PIOSCOMMON)/pios_rcvr.c
+SRC += $(PIOSCOMMON)/pios_sbus.c
 SRC += $(PIOSCOMMON)/pios_sensors.c
 SRC += $(PIOSCOMMON)/pios_flash.c
 SRC += $(PIOSCOMMON)/pios_gcsrcvr.c

@@ -6,7 +6,7 @@
 # @{
 # @addtogroup 
 # @{
-# @brief Makefile to build UAVObject code for flying f4 board.
+# @brief Makefile to build UAVObject code for discovery f4 board.
 ###############################################################################
 #
 # This program is free software; you can redistribute it and/or modify
@@ -55,16 +55,16 @@ UAVOBJSRCFILENAMES += flightplansettings
 UAVOBJSRCFILENAMES += flightplanstatus
 UAVOBJSRCFILENAMES += flighttelemetrystats
 UAVOBJSRCFILENAMES += fixedwingairspeeds
-UAVOBJSRCFILENAMES += fixedwingpathfollowersettings
-UAVOBJSRCFILENAMES += fixedwingpathfollowerstatus
+#UAVOBJSRCFILENAMES += fixedwingpathfollowersettings
+#UAVOBJSRCFILENAMES += fixedwingpathfollowerstatus
 UAVOBJSRCFILENAMES += gcstelemetrystats
 UAVOBJSRCFILENAMES += gcsreceiver
 UAVOBJSRCFILENAMES += gpsposition
 UAVOBJSRCFILENAMES += gpssatellites
 UAVOBJSRCFILENAMES += gpstime
 UAVOBJSRCFILENAMES += gpsvelocity
-UAVOBJSRCFILENAMES += groundpathfollowersettings
-UAVOBJSRCFILENAMES += vtolpathfollowersettings
+#UAVOBJSRCFILENAMES += groundpathfollowersettings
+#UAVOBJSRCFILENAMES += vtolpathfollowersettings
 UAVOBJSRCFILENAMES += homelocation
 UAVOBJSRCFILENAMES += insstate
 UAVOBJSRCFILENAMES += manualcontrolcommand
@@ -108,8 +108,8 @@ UAVOBJSRCFILENAMES += waypoint
 UAVOBJSRCFILENAMES += waypointactive
 
 UAVOBJSRCFILENAMES += txpidsettings
-UAVOBJSRCFILENAMES += vibrationanalysissettings
-UAVOBJSRCFILENAMES += vibrationanalysisoutput
+#UAVOBJSRCFILENAMES += vibrationanalysissettings
+#UAVOBJSRCFILENAMES += vibrationanalysisoutput
 UAVOBJSRCFILENAMES += trimangles
 UAVOBJSRCFILENAMES += trimanglessettings
 

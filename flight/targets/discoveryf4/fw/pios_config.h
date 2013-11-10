@@ -37,19 +37,14 @@
 /* Enable/Disable PiOS Modules */
 //#define PIOS_INCLUDE_ADC
 #define PIOS_INCLUDE_DELAY
-#define PIOS_INCLUDE_I2C
 #define PIOS_INCLUDE_IRQ
 #define PIOS_INCLUDE_LED
 #define PIOS_INCLUDE_IAP
-//#define PIOS_INCLUDE_TIM
+#define PIOS_INCLUDE_TIM
+#define PIOS_INCLUDE_SERVO
 #define PIOS_INCLUDE_SYS
 #define PIOS_INCLUDE_RCVR
 
-/* Supported receiver interfaces */
-//#define PIOS_INCLUDE_DSM
-//#define PIOS_INCLUDE_SBUS
-//#define PIOS_INCLUDE_PPM
-//#define PIOS_INCLUDE_PWM
 #define PIOS_INCLUDE_GCSRCVR
 
 /* Supported USART-based PIOS modules */
@@ -57,7 +52,6 @@
 //#define PIOS_INCLUDE_GPS
 //#define PIOS_GPS_MINIMAL
 
-//#define PIOS_INCLUDE_SERVO
 #define PIOS_INCLUDE_SPI
 #define PIOS_INCLUDE_I2C
 #define PIOS_INCLUDE_SYS
@@ -65,7 +59,6 @@
 #define PIOS_INCLUDE_USB
 #define PIOS_INCLUDE_USB_HID
 #define PIOS_INCLUDE_USB_CDC
-#define PIOS_INCLUDE_COM
 //#define PIOS_INCLUDE_GPIO
 #define PIOS_INCLUDE_EXTI
 #define PIOS_INCLUDE_RTC
@@ -84,6 +77,19 @@
 #define PIOS_INCLUDE_COM_FLEXI
 #define PIOS_INCLUDE_MAVLINK
 
+#define PIOS_INCLUDE_GPS
+#define PIOS_INCLUDE_GPS_NMEA_PARSER
+//#define PIOS_INCLUDE_GPS_UBX_PARSER
+#define PIOS_GPS_SETS_HOMELOCATION
+
+/* Supported receiver interfaces */
+#define PIOS_INCLUDE_RCVR
+#define PIOS_INCLUDE_DSM
+#define PIOS_INCLUDE_SBUS
+#define PIOS_INCLUDE_PPM
+#define PIOS_INCLUDE_PWM
+#define PIOS_INCLUDE_GCSRCVR
+
 
 /* Other Interfaces */
 //#define PIOS_INCLUDE_I2C_ESC
@@ -92,7 +98,6 @@
 #define PIOS_INCLUDE_INITCALL           /* Include init call structures */
 #define PIOS_TELEM_PRIORITY_QUEUE       /* Enable a priority queue in telemetry */
 //#define PIOS_QUATERNION_STABILIZATION   /* Stabilization options HEAVILY BROKEN!! */
-//#define PIOS_GPS_SETS_HOMELOCATION      /* GPS options */
 
 /* Alarm Thresholds */
 #define HEAP_LIMIT_WARNING		4000

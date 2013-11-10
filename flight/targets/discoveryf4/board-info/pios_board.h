@@ -111,7 +111,18 @@ extern uint32_t pios_i2c_gyro_accel_adapter_id;
 // See also pios_board.c
 //-------------------------
 extern uintptr_t pios_com_telem_rf_id;
+extern uintptr_t pios_com_gps_id;
+extern uintptr_t pios_com_telem_usb_id;
+extern uintptr_t pios_com_bridge_id;
+extern uintptr_t pios_com_vcp_id;
+extern uintptr_t pios_com_mavlink_id;
+
+#define PIOS_COM_GPS                    (pios_com_gps_id)
+#define PIOS_COM_TELEM_USB              (pios_com_telem_usb_id)
 #define PIOS_COM_TELEM_RF               (pios_com_telem_rf_id)
+#define PIOS_COM_BRIDGE                 (pios_com_bridge_id)
+#define PIOS_COM_VCP                    (pios_com_vcp_id)
+#define PIOS_COM_MAVLINK                (pios_com_mavlink_id)
 
 #if defined(PIOS_INCLUDE_DEBUG_CONSOLE)
 extern uintptr_t pios_com_debug_id;
@@ -171,6 +182,32 @@ extern uintptr_t pios_com_telem_usb_id;
 #define PIOS_RCVR_MAX_CHANNELS       12
 #define PIOS_GCSRCVR_TIMEOUT_MS     100
 
+//-------------------------
+// Receiver PPM input
+//-------------------------
+#define PIOS_PPM_NUM_INPUTS				12
+
+//-------------------------
+// Receiver PWM input
+//-------------------------
+#define PIOS_PWM_NUM_INPUTS				8
+
+//-------------------------
+// Receiver DSM input
+//-------------------------
+#define PIOS_DSM_NUM_INPUTS				12
+
+//-------------------------
+// Receiver S.Bus input
+//-------------------------
+#define PIOS_SBUS_NUM_INPUTS			(16+2)
+
+//-------------------------
+// Servo outputs
+//-------------------------
+#define PIOS_SERVO_UPDATE_HZ			50
+#define PIOS_SERVOS_INITIAL_POSITION	0 /* dont want to start motors, have no pulse till settings loaded */
+
 //--------------------------
 // Timer controller settings
 //--------------------------
@@ -185,6 +222,14 @@ extern uintptr_t pios_com_telem_usb_id;
 // USB
 //-------------------------
 #define PIOS_USB_ENABLED                        1 /* Should remove all references to this */
+
+//-------------------------
+// GPIO
+//-------------------------
+
+#define PIOS_GPIO_NUM			0
+#define PIOS_GPIO_PINS			{ }
+#define PIOS_GPIO_PORTS			{ }
 
 #endif /* STM32F4XX_DISCOVERYF4_H_ */
 

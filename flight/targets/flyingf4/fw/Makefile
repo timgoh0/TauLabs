@@ -40,6 +40,8 @@ MODULES += Stabilization
 MODULES += FirmwareIAP
 MODULES += Telemetry
 
+
+
 OPTMODULES += GPS
 OPTMODULES += PathPlanner
 OPTMODULES += AltitudeHold 
